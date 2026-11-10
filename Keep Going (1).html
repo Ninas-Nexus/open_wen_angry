@@ -1,0 +1,190 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Keep Going</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one tall column of escalating statements over a canvas of rising embers; the heat climbs as you scroll. Single dark theme by design. */
+:root {
+  --bg: #170c0b;
+  --coal: #241311;
+  --ash: #b9a8a2;
+  --fg: #f4e9e3;
+  --ember: #ff6a2b;
+  --flare: #ffb347;
+  --font-display: "Big Shoulders Display", "Impact", "Arial Narrow", sans-serif;
+  --font-body: "Newsreader", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+#embers { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.glow {
+  position: fixed; inset: auto 0 0 0; height: 55vh; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(255,106,43,.28), rgba(255,106,43,0) 70%);
+}
+main {
+  position: relative; z-index: 1;
+  max-width: 54rem; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12vh 18vh;
+  display: grid; gap: clamp(4rem, 12vh, 8rem);
+}
+.label {
+  font-family: var(--font-mono); font-size: .78rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ember);
+}
+h1 {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(3.6rem, 15vw, 9.5rem); line-height: .86;
+  text-transform: uppercase; margin: .6rem 0 0; letter-spacing: -.01em;
+  text-wrap: balance;
+}
+h1 .hot {
+  background: linear-gradient(180deg, var(--flare), var(--ember) 70%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lede { max-width: 34rem; color: var(--ash); font-size: 1.3rem; margin: 1.6rem 0 0; }
+section { display: grid; gap: .9rem; max-width: 40rem; }
+h2 {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  font-size: clamp(2rem, 7vw, 3.4rem); line-height: .95; margin: 0; text-wrap: balance;
+}
+p { margin: 0; }
+.right { justify-self: end; text-align: right; }
+.closer { text-align: center; justify-items: center; max-width: none; }
+.closer h2 { font-size: clamp(3rem, 13vw, 7.5rem); color: var(--flare); }
+.rule {
+  width: 4rem; height: 3px; border: 0; margin: 0;
+  background: linear-gradient(90deg, var(--ember), var(--flare));
+}
+
+
+.lock { min-height: 60vh; align-content: center; }
+.lock form { display: flex; gap: .6rem; flex-wrap: wrap; }
+.lock input {
+  flex: 1 1 14rem; min-width: 0; font: inherit; font-size: 1.1rem; color: var(--fg);
+  background: var(--coal); border: 1px solid #4a2a24; border-radius: 4px; padding: .7rem .9rem;
+}
+.lock input:focus { outline: 2px solid var(--ember); outline-offset: 2px; }
+.lock button {
+  font-family: var(--font-mono); font-size: .85rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--bg); background: var(--ember); border: 0; border-radius: 4px; padding: .7rem 1.2rem; cursor: pointer;
+}
+.lock button:focus-visible { outline: 2px solid var(--flare); outline-offset: 2px; }
+.lock button:disabled { opacity: .6; cursor: wait; }
+.err { color: var(--flare); font-size: 1rem; }
+</style>
+
+<canvas id="embers" aria-hidden="true"></canvas>
+<div class="glow" aria-hidden="true"></div>
+
+<main id="vault">
+  <section class="lock" id="lock">
+    <div class="label">Private</div>
+    <h2>Enter the password</h2>
+    <form id="lockform" autocomplete="off">
+      <input id="pw" type="password" aria-label="Password" required>
+      <button type="submit" id="unlock">Unlock</button>
+    </form>
+    <p class="err" id="err" hidden>That password didn't work. Check it and try again.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var c = document.getElementById('embers'), ctx = c.getContext('2d');
+  var dpr = Math.min(window.devicePixelRatio || 1, 2), w, h, parts = [];
+  function size() {
+    w = c.clientWidth || window.innerWidth || 400; h = c.clientHeight || window.innerHeight || 800;
+    c.width = w * dpr; c.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function spawn(init) {
+    return {
+      x: Math.random() * w,
+      y: init ? Math.random() * h : h + 10,
+      r: Math.random() * 2.2 + .6,
+      vy: Math.random() * .9 + .35,
+      drift: Math.random() * Math.PI * 2,
+      life: Math.random() * .6 + .4
+    };
+  }
+  size();
+  var n = Math.round(Math.max(60, Math.min(110, w / 9)));
+  for (var i = 0; i < n; i++) parts.push(spawn(true));
+  window.addEventListener('resize', size);
+  function tick() {
+    ctx.clearRect(0, 0, w, h);
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      p.y -= p.vy; p.drift += .02; p.x += Math.sin(p.drift) * .4;
+      var a = Math.max(0, Math.min(1, p.y / h)) * p.life;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,' + (120 + Math.round(60 * a)) + ',60,' + a.toFixed(3) + ')';
+      ctx.shadowColor = 'rgba(255,106,43,.9)'; ctx.shadowBlur = 8;
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+      if (p.y < -10) parts[i] = spawn(false);
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
+</script>
+<script>
+(function () {
+  var DATA = { salt: "1/7X9iRZHTLNsbIKgtViZA==", iv: "eW0wJr2cwbaYkNae", ct: "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" };
+  var STORE = "keepgoing-key";
+  var cs = window.crypto && window.crypto.subtle;
+  function ub(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function bu(u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function norm(s) { return s.normalize("NFC"); }
+  function show(html) { document.getElementById("vault").innerHTML = html; }
+  function decrypt(key) {
+    return cs.decrypt({ name: "AES-GCM", iv: ub(DATA.iv) }, key, ub(DATA.ct))
+      .then(function (buf) { return new TextDecoder().decode(buf); });
+  }
+  function fromStore() {
+    var raw = null;
+    try { raw = localStorage.getItem(STORE); } catch (e) {}
+    if (!raw || !cs) return Promise.reject();
+    return cs.importKey("raw", ub(raw), "AES-GCM", false, ["decrypt"]).then(decrypt);
+  }
+  function lockUp() {
+    var form = document.getElementById("lockform"), input = document.getElementById("pw"),
+        btn = document.getElementById("unlock"), err = document.getElementById("err");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      err.hidden = true; btn.disabled = true; btn.textContent = "Unlocking";
+      var enc = new TextEncoder(), key;
+      cs.importKey("raw", enc.encode(norm(input.value)), "PBKDF2", false, ["deriveKey"])
+        .then(function (base) {
+          return cs.deriveKey({ name: "PBKDF2", salt: ub(DATA.salt), iterations: 600000, hash: "SHA-256" },
+            base, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+        })
+        .then(function (k) { key = k; return decrypt(k); })
+        .then(function (html) {
+          show(html);
+          return cs.exportKey("raw", key).then(function (r) {
+            try { localStorage.setItem(STORE, bu(new Uint8Array(r))); } catch (e) {}
+          });
+        })
+        .catch(function () {
+          err.hidden = false; btn.disabled = false; btn.textContent = "Unlock"; input.select();
+        });
+    });
+    input.focus();
+  }
+  fromStore().then(show, function () {
+    try { localStorage.removeItem(STORE); } catch (e) {}
+    lockUp();
+  });
+})();
+</script>
+
+</body></html>
